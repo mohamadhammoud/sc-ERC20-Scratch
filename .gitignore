@@ -1,0 +1,12 @@
+# Foundry build artifacts
+out/
+cache/
+broadcast/
+
+# Environment variables
+.env
+.env.*
+
+# System files
+.DS_Store
+
