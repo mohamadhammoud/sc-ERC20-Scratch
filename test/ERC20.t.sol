@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.31;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {ERC20} from "src/ERC20.sol";
 
 contract ERC20Test is Test {
@@ -111,7 +111,8 @@ contract ERC20Test is Test {
         vm.prank(alice);
         vm.expectEmit(true, true, false, true);
         emit Transfer(alice, bob, amount);
-        token.transfer(bob, amount);
+        bool success = token.transfer(bob, amount);
+        assertTrue(success);
     }
 
     function test_Transfer_ReturnsTrue() public {
@@ -126,7 +127,8 @@ contract ERC20Test is Test {
         token.mint(alice, mintAmount);
 
         vm.prank(alice);
-        token.transfer(bob, transferAmount);
+        bool success = token.transfer(bob, transferAmount);
+        assertTrue(success);
 
         assertEq(token.balanceOf(alice), mintAmount - transferAmount);
         assertEq(token.balanceOf(bob), transferAmount);
@@ -137,7 +139,8 @@ contract ERC20Test is Test {
 
         vm.prank(alice);
         vm.expectRevert("ERC20: insufficient balance");
-        token.transfer(bob, 1000);
+        bool success = token.transfer(bob, 1000);
+        // Note: success is never set because the call reverts
     }
 
     function test_Transfer_RevertsWhen_ToIsZero() public {
@@ -145,7 +148,8 @@ contract ERC20Test is Test {
 
         vm.prank(alice);
         vm.expectRevert("ERC20: Invalid recipient");
-        token.transfer(address(0), 1000);
+        bool success = token.transfer(address(0), 1000);
+        // Note: success is never set because the call reverts
     }
 
     // ============ Approve Tests ============
@@ -224,7 +228,8 @@ contract ERC20Test is Test {
         token.approve(bob, approveAmount);
 
         vm.prank(bob);
-        token.transferFrom(alice, charlie, transferAmount);
+        bool success = token.transferFrom(alice, charlie, transferAmount);
+        assertTrue(success);
 
         assertEq(token.allowance(alice, bob), approveAmount - transferAmount);
     }
@@ -239,7 +244,8 @@ contract ERC20Test is Test {
         vm.prank(bob);
         vm.expectEmit(true, true, false, true);
         emit Transfer(alice, charlie, amount);
-        token.transferFrom(alice, charlie, amount);
+        bool success = token.transferFrom(alice, charlie, amount);
+        assertTrue(success);
     }
 
     function test_TransferFrom_DoesNotEmitApproval_WhenAllowanceDecreases()
@@ -255,7 +261,8 @@ contract ERC20Test is Test {
         // transferFrom does NOT emit Approval event when decreasing allowance
         // Only the approve() function emits Approval events
         vm.prank(bob);
-        token.transferFrom(alice, charlie, transferAmount);
+        bool success = token.transferFrom(alice, charlie, transferAmount);
+        assertTrue(success);
 
         // Verify allowance was decreased but no Approval event was emitted
         assertEq(token.allowance(alice, bob), approveAmount - transferAmount);
@@ -278,7 +285,8 @@ contract ERC20Test is Test {
         token.approve(bob, type(uint256).max);
 
         vm.prank(bob);
-        token.transferFrom(alice, charlie, amount);
+        bool success = token.transferFrom(alice, charlie, amount);
+        assertTrue(success);
 
         assertEq(token.allowance(alice, bob), type(uint256).max);
     }
@@ -292,7 +300,8 @@ contract ERC20Test is Test {
 
         // Transfer exact allowance amount, should become 0
         vm.prank(bob);
-        token.transferFrom(alice, charlie, amount);
+        bool success = token.transferFrom(alice, charlie, amount);
+        assertTrue(success);
 
         assertEq(token.allowance(alice, bob), 0);
         assertEq(token.balanceOf(charlie), amount);
@@ -319,10 +328,12 @@ contract ERC20Test is Test {
         token.approve(bob, type(uint256).max);
 
         vm.prank(bob);
-        token.transferFrom(alice, charlie, 1000);
+        bool success1 = token.transferFrom(alice, charlie, 1000);
+        assertTrue(success1);
 
         vm.prank(bob);
-        token.transferFrom(alice, charlie, 2000);
+        bool success2 = token.transferFrom(alice, charlie, 2000);
+        assertTrue(success2);
 
         assertEq(token.allowance(alice, bob), type(uint256).max);
         assertEq(token.balanceOf(charlie), 3000);
@@ -334,7 +345,8 @@ contract ERC20Test is Test {
 
         vm.prank(bob);
         vm.expectRevert("ERC20: Invalid sender");
-        token.transferFrom(address(0), charlie, 1000);
+        bool success = token.transferFrom(address(0), charlie, 1000);
+        // Note: success is never set because the call reverts
     }
 
     function test_TransferFrom_RevertsWhen_ToIsZero() public {
@@ -344,7 +356,8 @@ contract ERC20Test is Test {
 
         vm.prank(bob);
         vm.expectRevert("ERC20: Invalid recipient");
-        token.transferFrom(alice, address(0), 1000);
+        bool success = token.transferFrom(alice, address(0), 1000);
+        // Note: success is never set because the call reverts
     }
 
     function test_TransferFrom_RevertsWhen_InsufficientAllowance() public {
@@ -354,7 +367,8 @@ contract ERC20Test is Test {
 
         vm.prank(bob);
         vm.expectRevert("ERC20: insufficient allowance");
-        token.transferFrom(alice, charlie, 1000);
+        bool success = token.transferFrom(alice, charlie, 1000);
+        // Note: success is never set because the call reverts
     }
 
     function test_TransferFrom_RevertsWhen_InsufficientBalance() public {
@@ -364,7 +378,8 @@ contract ERC20Test is Test {
 
         vm.prank(bob);
         vm.expectRevert("ERC20: insufficient balance");
-        token.transferFrom(alice, charlie, 1000);
+        bool success = token.transferFrom(alice, charlie, 1000);
+        // Note: success is never set because the call reverts
     }
 
     // ============ Edge Cases ============
@@ -385,7 +400,8 @@ contract ERC20Test is Test {
         token.mint(alice, amount);
 
         vm.prank(alice);
-        token.transfer(alice, amount);
+        bool success = token.transfer(alice, amount);
+        assertTrue(success);
 
         assertEq(token.balanceOf(alice), amount);
     }
@@ -398,7 +414,8 @@ contract ERC20Test is Test {
         token.approve(bob, amount);
 
         vm.prank(bob);
-        token.transferFrom(alice, alice, amount);
+        bool success = token.transferFrom(alice, alice, amount);
+        assertTrue(success);
 
         assertEq(token.balanceOf(alice), amount);
         assertEq(token.allowance(alice, bob), 0);
@@ -414,10 +431,12 @@ contract ERC20Test is Test {
         token.mint(alice, 3000);
 
         vm.prank(alice);
-        token.transfer(bob, 1000);
+        bool success1 = token.transfer(bob, 1000);
+        assertTrue(success1);
 
         vm.prank(alice);
-        token.transfer(charlie, 1000);
+        bool success2 = token.transfer(charlie, 1000);
+        assertTrue(success2);
 
         assertEq(token.balanceOf(alice), 1000);
         assertEq(token.balanceOf(bob), 1000);
@@ -430,10 +449,12 @@ contract ERC20Test is Test {
         token.approve(bob, 3000);
 
         vm.prank(bob);
-        token.transferFrom(alice, charlie, 1000);
+        bool success1 = token.transferFrom(alice, charlie, 1000);
+        assertTrue(success1);
 
         vm.prank(bob);
-        token.transferFrom(alice, charlie, 1000);
+        bool success2 = token.transferFrom(alice, charlie, 1000);
+        assertTrue(success2);
 
         assertEq(token.balanceOf(alice), 1000);
         assertEq(token.balanceOf(charlie), 2000);
@@ -454,14 +475,16 @@ contract ERC20Test is Test {
 
         // Bob transfers from alice to charlie
         vm.prank(bob);
-        token.transferFrom(alice, charlie, 300);
+        bool success1 = token.transferFrom(alice, charlie, 300);
+        assertTrue(success1);
         assertEq(token.balanceOf(alice), 700);
         assertEq(token.balanceOf(charlie), 300);
         assertEq(token.allowance(alice, bob), 200);
 
         // Alice transfers directly to charlie
         vm.prank(alice);
-        token.transfer(charlie, 200);
+        bool success2 = token.transfer(charlie, 200);
+        assertTrue(success2);
         assertEq(token.balanceOf(alice), 500);
         assertEq(token.balanceOf(charlie), 500);
     }

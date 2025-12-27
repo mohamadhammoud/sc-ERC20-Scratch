@@ -3,6 +3,10 @@ src = "src"
 out = "out"
 libs = ["dependencies"]
 
+# A list of solidity error/warning codes to ignore.
+# 2424 = deprecated Natspec memory-safe-assembly comment (from forge-std dependencies)
+ignored_error_codes = [2424]
+
 [dependencies]
 forge-std = "1.12.0"
 
