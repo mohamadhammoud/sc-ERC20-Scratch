@@ -16,4 +16,14 @@ contract USDTHandler {
         // safeTransfer either succeeds or reverts, it doesn't return a bool
         token.safeTransfer(to, amount);
     }
+
+    function approveSpender(
+        IERC20 token,
+        address spender,
+        uint256 amount
+    ) external {
+        // forceApprove handles USDT's approve quirk automatically
+        // It first tries to approve, and if it fails, sets to 0 then approves again
+        token.forceApprove(spender, amount);
+    }
 }

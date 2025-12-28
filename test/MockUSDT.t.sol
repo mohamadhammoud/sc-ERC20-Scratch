@@ -192,4 +192,79 @@ contract MockUSDTTest is Test {
         vm.expectRevert("ERC20: Invalid recipient");
         handler.pay(IERC20(address(token)), address(0), amount);
     }
+
+    // ============ forceApprove Tests ============
+    // forceApprove handles USDT's approve quirk automatically
+    // It tries to approve directly, and if that fails, sets to 0 first then approves
+
+    function test_ForceApprove_FromZeroToNonZero_Success() public {
+        // forceApprove should work directly when current allowance is 0
+        uint256 amount = 1000 * 10 ** 18;
+
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, amount);
+
+        assertEq(token.allowance(address(handler), bob), amount);
+    }
+
+    function test_ForceApprove_FromNonZeroToNonZero_Success() public {
+        // forceApprove automatically handles the USDT quirk
+        // It will set to 0 first, then approve the new value
+        uint256 initialAmount = 1000 * 10 ** 18;
+        uint256 newAmount = 2000 * 10 ** 18;
+
+        // First approve a non-zero amount
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, initialAmount);
+        assertEq(token.allowance(address(handler), bob), initialAmount);
+
+        // Now forceApprove a different non-zero amount
+        // This would normally revert with direct approve, but forceApprove handles it
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, newAmount);
+
+        assertEq(token.allowance(address(handler), bob), newAmount);
+    }
+
+    function test_ForceApprove_FromNonZeroToZero_Success() public {
+        // forceApprove should work directly when setting to 0
+        uint256 initialAmount = 1000 * 10 ** 18;
+
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, initialAmount);
+        assertEq(token.allowance(address(handler), bob), initialAmount);
+
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, 0);
+        assertEq(token.allowance(address(handler), bob), 0);
+    }
+
+    function test_ForceApprove_MultipleUpdates_Success() public {
+        // Test multiple forceApprove calls in sequence
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, 1000);
+        assertEq(token.allowance(address(handler), bob), 1000);
+
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, 2000);
+        assertEq(token.allowance(address(handler), bob), 2000);
+
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, 500);
+        assertEq(token.allowance(address(handler), bob), 500);
+
+        vm.prank(address(handler));
+        handler.approveSpender(IERC20(address(token)), bob, 0);
+        assertEq(token.allowance(address(handler), bob), 0);
+    }
+
+    function test_ForceApprove_EmitsApprovalEvents() public {
+        // forceApprove should emit Approval events
+        uint256 amount = 1000 * 10 ** 18;
+
+        vm.prank(address(handler));
+        vm.expectEmit(true, true, false, true);
+        emit Approval(address(handler), bob, amount);
+        handler.approveSpender(IERC20(address(token)), bob, amount);
+    }
 }
