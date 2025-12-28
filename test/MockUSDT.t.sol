@@ -1,0 +1,189 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.31;
+
+import {Test} from "forge-std/Test.sol";
+import {IERC20} from "src/interfaces/IERC20.sol";
+import {MockUSDT} from "src/MockUSDT.sol";
+import {USDTHandler} from "src/USDTHandler.sol";
+
+contract MockUSDTTest is Test {
+    MockUSDT public token;
+    USDTHandler public handler;
+    address public alice = address(0x1);
+    address public bob = address(0x2);
+    address public charlie = address(0x3);
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+
+    function setUp() public {
+        token = new MockUSDT("Mock USDT", "USDT");
+
+        handler = new USDTHandler();
+        token.mint(address(handler), 1000000 * 10 ** 18);
+    }
+
+    // ============ USDT Approve Quirk Tests ============
+    // USDT requires: currentAllowance == 0 || amount == 0
+    // This means you can only approve non-zero when current allowance is zero
+
+    function test_Approve_FromZeroToNonZero_Success() public {
+        // ✅ Allowed: currentAllowance == 0, amount != 0
+        vm.prank(alice);
+        token.approve(bob, 1000);
+        assertEq(token.allowance(alice, bob), 1000);
+    }
+
+    function test_Approve_FromNonZeroToZero_Success() public {
+        // Allowed: amount == 0 (regardless of currentAllowance)
+        vm.prank(alice);
+        token.approve(bob, 1000);
+
+        vm.prank(alice);
+        token.approve(bob, 0);
+        assertEq(token.allowance(alice, bob), 0);
+    }
+
+    function test_Approve_FromNonZeroToNonZero_Reverts() public {
+        //  Reverts: currentAllowance != 0 && amount != 0
+        vm.prank(alice);
+        token.approve(bob, 1000);
+
+        vm.prank(alice);
+        vm.expectRevert("USDT: approve must be zero first");
+        token.approve(bob, 2000);
+    }
+
+    function test_Approve_TwoStepUpdate_Success() public {
+        // USDT workaround: Set to 0 first, then set new value
+        vm.prank(alice);
+        token.approve(bob, 1000);
+
+        // Step 1: Set to zero (allowed)
+        vm.prank(alice);
+        token.approve(bob, 0);
+
+        // Step 2: Set to new value (now allowed since current is zero)
+        vm.prank(alice);
+        token.approve(bob, 2000);
+        assertEq(token.allowance(alice, bob), 2000);
+    }
+
+    // ============ Transfer Tests ============
+
+    function test_Transfer_Success() public {
+        uint256 amount = 1000 * 10 ** 18;
+        token.mint(alice, amount);
+
+        vm.prank(alice);
+        token.transfer(bob, amount);
+
+        assertEq(token.balanceOf(alice), 0);
+        assertEq(token.balanceOf(bob), amount);
+    }
+
+    function test_Transfer_EmitsTransfer() public {
+        uint256 amount = 1000 * 10 ** 18;
+        token.mint(alice, amount);
+
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true);
+        emit Transfer(alice, bob, amount);
+        token.transfer(bob, amount);
+    }
+
+    function test_Transfer_DoesNotReturnBool() public {
+        // MockUSDT.transfer() doesn't return bool (like old USDT)
+        // This test verifies the transfer still works, just without return value
+        token.mint(alice, 1000 * 10 ** 18);
+        vm.prank(alice);
+        token.transfer(bob, 1000 * 10 ** 18);
+        assertEq(token.balanceOf(bob), 1000 * 10 ** 18);
+    }
+
+    function test_Transfer_PartialAmount() public {
+        uint256 mintAmount = 1000 * 10 ** 18;
+        uint256 transferAmount = 300 * 10 ** 18;
+        token.mint(alice, mintAmount);
+
+        vm.prank(alice);
+        token.transfer(bob, transferAmount);
+
+        assertEq(token.balanceOf(alice), mintAmount - transferAmount);
+        assertEq(token.balanceOf(bob), transferAmount);
+    }
+
+    function test_Transfer_RevertsWhen_InsufficientBalance() public {
+        token.mint(alice, 500 * 10 ** 18);
+
+        vm.prank(alice);
+        vm.expectRevert("ERC20: insufficient balance");
+        token.transfer(bob, 1000 * 10 ** 18);
+    }
+
+    function test_Transfer_RevertsWhen_ToIsZero() public {
+        token.mint(alice, 1000 * 10 ** 18);
+
+        vm.prank(alice);
+        vm.expectRevert("ERC20: Invalid recipient");
+        token.transfer(address(0), 1000 * 10 ** 18);
+    }
+
+    function test_Transfer_ZeroAmount() public {
+        token.mint(alice, 1000 * 10 ** 18);
+
+        vm.prank(alice);
+        token.transfer(bob, 0);
+
+        assertEq(token.balanceOf(alice), 1000 * 10 ** 18);
+        assertEq(token.balanceOf(bob), 0);
+    }
+
+    function test_Transfer_ToSelf() public {
+        uint256 amount = 1000 * 10 ** 18;
+        token.mint(alice, amount);
+
+        vm.prank(alice);
+        token.transfer(alice, amount);
+
+        assertEq(token.balanceOf(alice), amount);
+    }
+
+    // ============ USDTHandler Tests ============
+    // USDTHandler uses: bool ok = token.transfer(to, amount);
+    // MockUSDT.transfer() does NOT return bool (like old USDT)
+    // When trying to decode a return value that doesn't exist, Solidity reverts
+    // This demonstrates the issue with non-standard ERC20 tokens
+
+    function test_USDTHandler_Transfer_Reverts_WhenDecodingNonExistentReturn()
+        public
+    {
+        // Handler has USDT minted in setUp
+        uint256 amount = 1000 * 10 ** 18;
+
+        // USDTHandler tries to decode: bool ok = token.transfer(...)
+        // But MockUSDT.transfer() doesn't return bool, so decoding fails
+        // This causes a revert before the transfer even happens
+        vm.expectRevert();
+        handler.pay(IERC20(address(token)), alice, amount);
+    }
+
+    function test_USDTHandler_Transfer_Reverts_EvenWithValidTransfer() public {
+        // Even if the transfer would succeed, USDTHandler still reverts
+        // because it tries to decode a return value that doesn't exist
+        uint256 amount = 1000 * 10 ** 18;
+        uint256 initialBalance = token.balanceOf(address(handler));
+
+        // The revert happens during return value decoding, not during transfer
+        vm.expectRevert();
+        handler.pay(IERC20(address(token)), alice, amount);
+
+        // Balance should remain unchanged because the call reverted
+        assertEq(token.balanceOf(address(handler)), initialBalance);
+        assertEq(token.balanceOf(alice), 0);
+    }
+}
