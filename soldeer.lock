@@ -4,3 +4,9 @@ version = "1.12.0"
 url = "https://soldeer-revisions.s3.amazonaws.com/forge-std/1_12_0_28-11-2025_13:04:44_forge-std-1.12.zip"
 checksum = "81dccd87cb3303f28fa7f8158e3fed087afcdafa976e78ad1a8601a9883fe413"
 integrity = "76ecadcacae000ba45c346835c9458cc572d3b1555ae0056a34537157111c204"
+
+[[dependencies]]
+name = "openzeppelin-contracts"
+version = "5.0.0"
+git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git"
+rev = "932fddf69a699a9a80fd2396fd1a2ab91cdda123"

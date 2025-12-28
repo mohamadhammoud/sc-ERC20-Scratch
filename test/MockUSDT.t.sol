@@ -2,7 +2,9 @@
 pragma solidity ^0.8.31;
 
 import {Test} from "forge-std/Test.sol";
-import {IERC20} from "src/interfaces/IERC20.sol";
+import {
+    IERC20
+} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/IERC20.sol";
 import {MockUSDT} from "src/MockUSDT.sol";
 import {USDTHandler} from "src/USDTHandler.sol";
 
@@ -154,36 +156,40 @@ contract MockUSDTTest is Test {
     }
 
     // ============ USDTHandler Tests ============
-    // USDTHandler uses: bool ok = token.transfer(to, amount);
-    // MockUSDT.transfer() does NOT return bool (like old USDT)
-    // When trying to decode a return value that doesn't exist, Solidity reverts
-    // This demonstrates the issue with non-standard ERC20 tokens
+    // USDTHandler now uses SafeERC20.safeTransfer() which handles non-standard ERC20 tokens
+    // SafeERC20 gracefully handles tokens that don't return bool (like old USDT)
+    // This demonstrates how SafeERC20 solves the non-standard ERC20 token problem
 
-    function test_USDTHandler_Transfer_Reverts_WhenDecodingNonExistentReturn()
-        public
-    {
+    function test_USDTHandler_Transfer_Success_WithSafeERC20() public {
         // Handler has USDT minted in setUp
-        uint256 amount = 1000 * 10 ** 18;
-
-        // USDTHandler tries to decode: bool ok = token.transfer(...)
-        // But MockUSDT.transfer() doesn't return bool, so decoding fails
-        // This causes a revert before the transfer even happens
-        vm.expectRevert();
-        handler.pay(IERC20(address(token)), alice, amount);
-    }
-
-    function test_USDTHandler_Transfer_Reverts_EvenWithValidTransfer() public {
-        // Even if the transfer would succeed, USDTHandler still reverts
-        // because it tries to decode a return value that doesn't exist
         uint256 amount = 1000 * 10 ** 18;
         uint256 initialBalance = token.balanceOf(address(handler));
 
-        // The revert happens during return value decoding, not during transfer
-        vm.expectRevert();
+        // SafeERC20 handles MockUSDT.transfer() even though it doesn't return bool
+        // The transfer succeeds because SafeERC20 doesn't require a return value
         handler.pay(IERC20(address(token)), alice, amount);
 
-        // Balance should remain unchanged because the call reverted
-        assertEq(token.balanceOf(address(handler)), initialBalance);
-        assertEq(token.balanceOf(alice), 0);
+        // Verify the transfer succeeded
+        assertEq(token.balanceOf(address(handler)), initialBalance - amount);
+        assertEq(token.balanceOf(alice), amount);
+    }
+
+    function test_USDTHandler_Transfer_RevertsWhen_InsufficientBalance()
+        public
+    {
+        uint256 handlerBalance = token.balanceOf(address(handler));
+        uint256 amount = handlerBalance + 1; // More than handler has
+
+        // SafeERC20 will revert with MockUSDT's revert message
+        vm.expectRevert("ERC20: insufficient balance");
+        handler.pay(IERC20(address(token)), alice, amount);
+    }
+
+    function test_USDTHandler_Transfer_RevertsWhen_ToIsZero() public {
+        uint256 amount = 1000 * 10 ** 18;
+
+        // SafeERC20 will revert with MockUSDT's revert message
+        vm.expectRevert("ERC20: Invalid recipient");
+        handler.pay(IERC20(address(token)), address(0), amount);
     }
 }

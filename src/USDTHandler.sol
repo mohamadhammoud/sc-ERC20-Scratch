@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.31;
 
-import {IERC20} from "src/interfaces/IERC20.sol";
+import {
+    IERC20
+} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/IERC20.sol";
+import {
+    SafeERC20
+} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract USDTHandler {
+    using SafeERC20 for IERC20;
+
     function pay(IERC20 token, address to, uint256 amount) external {
-        // THIS IS NORMAL ERC20 USAGE
-        bool ok = token.transfer(to, amount);
-        require(ok, "transfer failed");
+        // SafeERC20 handles non-standard ERC20 tokens (like USDT that don't return bool)
+        // safeTransfer either succeeds or reverts, it doesn't return a bool
+        token.safeTransfer(to, amount);
     }
 }
