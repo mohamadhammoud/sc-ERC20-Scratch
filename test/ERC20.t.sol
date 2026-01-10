@@ -15,11 +15,7 @@ contract ERC20Test is Test {
     uint8 public constant TOKEN_DECIMALS = 18;
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     function setUp() public {
         token = new ERC20(TOKEN_NAME, TOKEN_SYMBOL);
@@ -248,9 +244,7 @@ contract ERC20Test is Test {
         assertTrue(success);
     }
 
-    function test_TransferFrom_DoesNotEmitApproval_WhenAllowanceDecreases()
-        public
-    {
+    function test_TransferFrom_DoesNotEmitApproval_WhenAllowanceDecreases() public {
         uint256 approveAmount = 1000;
         uint256 transferAmount = 300;
         token.mint(alice, approveAmount);

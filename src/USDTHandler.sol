@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.31;
 
-import {
-    IERC20
-} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/IERC20.sol";
-import {
-    SafeERC20
-} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract USDTHandler {
     using SafeERC20 for IERC20;
@@ -17,11 +13,7 @@ contract USDTHandler {
         token.safeTransfer(to, amount);
     }
 
-    function approveSpender(
-        IERC20 token,
-        address spender,
-        uint256 amount
-    ) external {
+    function approveSpender(IERC20 token, address spender, uint256 amount) external {
         // forceApprove handles USDT's approve quirk automatically
         // It first tries to approve, and if it fails, sets to 0 then approves again
         token.forceApprove(spender, amount);

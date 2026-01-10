@@ -2,9 +2,7 @@
 pragma solidity ^0.8.31;
 
 import {Test} from "forge-std/Test.sol";
-import {
-    IERC20
-} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "openzeppelin-contracts-5.0.0/contracts/token/ERC20/IERC20.sol";
 import {MockUSDT} from "src/MockUSDT.sol";
 import {USDTHandler} from "src/USDTHandler.sol";
 
@@ -16,11 +14,7 @@ contract MockUSDTTest is Test {
     address public charlie = address(0x3);
 
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     function setUp() public {
         token = new MockUSDT("Mock USDT", "USDT");
@@ -174,9 +168,7 @@ contract MockUSDTTest is Test {
         assertEq(token.balanceOf(alice), amount);
     }
 
-    function test_USDTHandler_Transfer_RevertsWhen_InsufficientBalance()
-        public
-    {
+    function test_USDTHandler_Transfer_RevertsWhen_InsufficientBalance() public {
         uint256 handlerBalance = token.balanceOf(address(handler));
         uint256 amount = handlerBalance + 1; // More than handler has
 

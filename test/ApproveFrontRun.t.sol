@@ -68,11 +68,7 @@ contract ApproveFrontRunTest is Test {
         uint256 expectedDrain = initialAmount + reducedAmount; // 100 + 50 = 150
 
         assertEq(bobTotal, expectedDrain, "Bob drained more than intended!");
-        assertEq(
-            token.balanceOf(alice),
-            1000 * 10 ** 18 - expectedDrain,
-            "Alice lost more tokens than intended!"
-        );
+        assertEq(token.balanceOf(alice), 1000 * 10 ** 18 - expectedDrain, "Alice lost more tokens than intended!");
         assertEq(token.allowance(alice, bob), 0);
     }
 }

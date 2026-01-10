@@ -9,8 +9,7 @@ contract ERC20 is IERC20Metadata {
     uint8 private immutable _DECIMALS;
 
     mapping(address account => uint256 balance) private _balances;
-    mapping(address owner => mapping(address spender => uint256 amount))
-        private _allowances;
+    mapping(address owner => mapping(address spender => uint256 amount)) private _allowances;
     uint256 private _totalSupply;
 
     constructor(string memory name_, string memory symbol_) {
@@ -39,10 +38,7 @@ contract ERC20 is IERC20Metadata {
         return _balances[account];
     }
 
-    function allowance(
-        address owner,
-        address spender
-    ) public view returns (uint256) {
+    function allowance(address owner, address spender) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -61,11 +57,7 @@ contract ERC20 is IERC20Metadata {
         return true;
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public returns (bool) {
+    function transferFrom(address from, address to, uint256 amount) public returns (bool) {
         require(from != address(0), "ERC20: Invalid sender");
         require(to != address(0), "ERC20: Invalid recipient");
 

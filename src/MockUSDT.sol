@@ -3,19 +3,14 @@ pragma solidity ^0.8.31;
 
 contract MockUSDT {
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(
-        address indexed owner,
-        address indexed spender,
-        uint256 value
-    );
+    event Approval(address indexed owner, address indexed spender, uint256 value);
 
     string private _name;
     string private _symbol;
     uint8 private immutable _DECIMALS;
 
     mapping(address account => uint256 balance) private _balances;
-    mapping(address owner => mapping(address spender => uint256 amount))
-        private _allowances;
+    mapping(address owner => mapping(address spender => uint256 amount)) private _allowances;
     uint256 private _totalSupply;
 
     constructor(string memory name_, string memory symbol_) {
@@ -44,10 +39,7 @@ contract MockUSDT {
         return _balances[account];
     }
 
-    function allowance(
-        address owner,
-        address spender
-    ) public view returns (uint256) {
+    function allowance(address owner, address spender) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
@@ -61,10 +53,7 @@ contract MockUSDT {
         uint256 currentAllowance = _allowances[msg.sender][spender];
 
         // USDT behavior: must set to 0 before non-zero update
-        require(
-            currentAllowance == 0 || amount == 0,
-            "USDT: approve must be zero first"
-        );
+        require(currentAllowance == 0 || amount == 0, "USDT: approve must be zero first");
 
         _allowances[msg.sender][spender] = amount;
         emit Approval(msg.sender, spender, amount);
