@@ -13,15 +13,19 @@ contract BuggyVault {
     }
 
     function deposit(uint256 amount) external {
-        // transferFrom sends "amount"...
+        // ✅ FIX: Check actual received amount (handles fee-on-transfer tokens)
+        uint256 before = token.balanceOf(address(this));
         token.transferFrom(msg.sender, address(this), amount);
+        uint256 received = token.balanceOf(address(this)) - before;
 
-        // ❌ BUG: assumes vault received `amount`
-        // User deposits 100 tokens, but vault receives only 99 (because fee).
-        // Yet vault credits user 100.
-        // So user can withdraw 100.
-        // but vault only has 99.
-        credits[msg.sender] += amount;
+        // ❌ BUG WAS HERE: credits[msg.sender] += amount;
+        // The bug was crediting the user with the requested `amount` instead of
+        // the actual `received` amount. This caused accounting mismatch when
+        // tokens have transfer fees. User would be credited 100 but vault only
+        // received 99 (after 1% fee), allowing user to drain more than deposited.
+
+        // ✅ FIX: Credit the actual received amount
+        credits[msg.sender] += received;
     }
 
     function withdraw(uint256 amount) external {

@@ -22,7 +22,7 @@ contract FeeOnTransfer_BuggyVault_Test is Test {
         token.mint(alice, 1000 ether);
     }
 
-    function test_DepositCreditsMoreThanReceived() public {
+    function test_DepositCreditsOnlyReceivedAmount() public {
         // Alice approves vault
         vm.prank(alice);
         token.approve(address(vault), type(uint256).max);
@@ -31,17 +31,18 @@ contract FeeOnTransfer_BuggyVault_Test is Test {
         vm.prank(alice);
         vault.deposit(100 ether);
 
-        // ✅ Vault credits Alice as if it received 100
-        assertEq(vault.credits(alice), 100 ether);
+        // ✅ FIX VERIFIED: Vault credits Alice with only the received amount (99)
+        // not the requested amount (100)
+        assertEq(vault.credits(alice), 99 ether, "Should credit only received amount");
 
-        // ❗ But vault actually received only 99 because of fee
+        // Vault actually received 99 because of 1% fee
         assertEq(token.balanceOf(address(vault)), 99 ether);
 
         // FeeCollector got 1
         assertEq(token.balanceOf(feeCollector), 1 ether);
     }
 
-    function test_WithdrawFailsBecauseVaultDoesNotHaveEnoughTokens() public {
+    function test_WithdrawSucceedsWithCorrectAccounting() public {
         // Approve + deposit
         vm.prank(alice);
         token.approve(address(vault), type(uint256).max);
@@ -49,9 +50,27 @@ contract FeeOnTransfer_BuggyVault_Test is Test {
         vm.prank(alice);
         vault.deposit(100 ether);
 
-        // Vault credited 100 but has only 99 -> withdraw 100 will revert
+        // ✅ FIX VERIFIED: Vault credited 99 and has 99 -> withdraw 99 succeeds
         vm.prank(alice);
-        vm.expectRevert("insufficient balance");
+        vault.withdraw(99 ether);
+
+        // Alice should have received her tokens back
+        // Note: There will be another 1% fee on withdrawal
+        assertEq(token.balanceOf(alice), 900 ether + 98.01 ether); // 900 (remaining) + 99 * 0.99 (after fee)
+        assertEq(vault.credits(alice), 0, "Credits should be zero after withdrawal");
+    }
+
+    function test_WithdrawFailsWhenTryingToWithdrawMoreThanCredited() public {
+        // Approve + deposit
+        vm.prank(alice);
+        token.approve(address(vault), type(uint256).max);
+
+        vm.prank(alice);
+        vault.deposit(100 ether);
+
+        // Vault credited 99, trying to withdraw 100 should fail
+        vm.prank(alice);
+        vm.expectRevert("not enough credit");
         vault.withdraw(100 ether);
     }
 }
